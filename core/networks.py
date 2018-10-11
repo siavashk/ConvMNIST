@@ -1,5 +1,6 @@
 import tensorflow as tf
 from .layers import *
+from .features import feature_map
 
 def compact_conv_layer(input_tensor, size_in=1, n_filter=64, pool_size=[1, 2, 2, 1], pool_stride=[1, 2, 2, 1],
     conv_scope="conv", activation_scope="act", pool_scope="pool", feature_summary="feature", max_features=64):

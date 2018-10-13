@@ -1,4 +1,5 @@
 import tensorflow as tf
+from tensorflow.python.tools import freeze_graph
 from core import simple_mnist_cnn
 from core import MNISTBatch
 import math
@@ -34,7 +35,8 @@ def main():
     args = parse_args()
     train_dir = os.path.join(args.save_dir, 'train')
     test_dir = os.path.join(args.save_dir, 'test')
-    checkpoint_dir = os.path.join(args.save_dir, 'ckpt')
+    ckpt_dir = os.path.join(args.save_dir, 'ckpt')
+    freeze_dir = os.path.join(args.save_dir, 'freeze')
 
     os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3' # Do not clutter training progress.
 
@@ -48,16 +50,19 @@ def main():
 
     saver = tf.train.Saver()
 
-    with tf.name_scope("cross_entropy"):
-        cross_entropy = tf.reduce_mean(tf.losses.sparse_softmax_cross_entropy(logits=logits, labels=labels))
-        tf.summary.scalar("cross_entropy", cross_entropy)
+    with tf.name_scope('output'):
+        softmax = tf.nn.softmax(logits, name='softmax')
 
-    with tf.name_scope("accuracy"):
+    with tf.name_scope('cross_entropy'):
+        cross_entropy = tf.reduce_mean(tf.losses.sparse_softmax_cross_entropy(logits=logits, labels=labels))
+        tf.summary.scalar('cross_entropy', cross_entropy)
+
+    with tf.name_scope('accuracy'):
         correct_prediction = tf.equal(tf.argmax(logits, 1), labels)
         accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
-        tf.summary.scalar("accuracy", accuracy)
+        tf.summary.scalar('accuracy', accuracy)
 
-    with tf.name_scope("train"):
+    with tf.name_scope('train'):
         train_step = tf.train.AdamOptimizer(learning_rate).minimize(cross_entropy)
 
     with tf.Session() as sess:
@@ -85,13 +90,18 @@ def main():
             print_progress(epoch, train_loss, test_loss, train_accuracy, test_accuracy)
 
             for step in range(args.steps):
-                lr = calculate_learning_rate(step + epoch * args.steps, args.lr_max, args.lr_min, args.lr_decay)
+                global_step = step + epoch * args.steps
+                lr = calculate_learning_rate(global_step, args.lr_max, args.lr_min, args.lr_decay)
                 sess.run([train_step], feed_dict={input_tensor: train_tensor, labels: train_labels, learning_rate: lr})
 
             if epoch % args.checkpoint is 0:
-                saver.save(sess, os.path.join(checkpoint_dir, 'model_' + str(epoch) + '.ckpt'))
+                saver.save(sess, os.path.join(ckpt_dir, 'model_' + str(epoch) + '.ckpt'))
 
-        saver.save(sess, os.path.join(checkpoint_dir, 'model_' + str(args.epochs) + '.ckpt'))
+        ckpt_file = saver.save(sess, os.path.join(ckpt_dir, 'model'), global_step=global_step)
+        tf.train.write_graph(sess.graph.as_graph_def(), freeze_dir, 'model.pb', as_text=False)
+        freeze_graph.freeze_graph(os.path.join(freeze_dir, 'model.pb'), '', True,
+            os.path.join(ckpt_dir, ckpt_file), 'output/softmax', 'save/restore_all',
+            'save/Const:0', os.path.join(freeze_dir, 'frozenmodel.pb'), True, '')
 
 if __name__ == '__main__':
     main()

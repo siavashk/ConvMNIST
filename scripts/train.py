@@ -1,22 +1,42 @@
 import tensorflow as tf
 from core import simple_mnist_cnn
 from core import MNISTBatch
-import os
 import math
+import argparse
+import os
 
-def shouldReport(step, report_step):
-    return step % report_step is 0
+def calculate_learning_rate(step=0, lr_max=1e-6, lr_min=1e-10, lr_decay=2e4):
+    return lr_min + (lr_max - lr_min) * math.exp(-step / lr_decay)
+
+def print_header():
+    print('{}|{}|{}|{}|{}'.format('epoch', 'train loss','test loss',
+        'train accuracy', 'test accuracy'))
+
+def print_progress(epoch, train_loss, test_loss, train_accuracy, test_accuracy):
+    print('{:03d}{:2}|{:4.4f}{:4}|{:4.4f}{:3}|{:.4f}{:8}|{:.3f}{:11} \
+        '.format(epoch, '', train_loss, '', test_loss, '', train_accuracy, '',
+        test_accuracy, ''))
+
+def parse_args():
+    parser = argparse.ArgumentParser(description='Traing Script for MNIST')
+    parser.add_argument('--save', dest='save_dir', type=str, default='/tmp/mnist')
+    parser.add_argument('--epochs', dest='epochs', type=int, default=600)
+    parser.add_argument('--steps', dest='steps', type=int, default=100)
+    parser.add_argument('--train-batch', dest='train_batch', type=int, default=100)
+    parser.add_argument('--test-batch', dest='test_batch', type=int, default=1000)
+    parser.add_argument('--lr-max', dest='lr_max', type=float, default=1e-6)
+    parser.add_argument('--lr-min', dest='lr_min', type=float, default=1e-10)
+    parser.add_argument('--lr-decay', dest='lr_decay', type=float, default=2e4)
+    parser.add_argument('--checkpoint', dest='checkpoint', type=int, default=100)
+    return parser.parse_args()
 
 def main():
-    summary_dir = "/tmp/mnist2"
-    train_dir = os.path.join(summary_dir, 'train')
-    test_dir = os.path.join(summary_dir, 'test')
-    n_epochs = 600
-    n_steps_per_epoch = 100
-    batch_size = 100
-    max_learning_rate = 1e-6
-    min_learning_rate = 1e-10
-    learning_rate_decay = 20000.0
+    args = parse_args()
+    train_dir = os.path.join(args.save_dir, 'train')
+    test_dir = os.path.join(args.save_dir, 'test')
+    checkpoint_dir = os.path.join(args.save_dir, 'ckpt')
+
+    os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3' # Do not clutter training progress.
 
     tf.reset_default_graph()
 
@@ -25,6 +45,8 @@ def main():
     input_tensor, logits, labels = simple_mnist_cnn()
 
     mnist = MNISTBatch()
+
+    saver = tf.train.Saver()
 
     with tf.name_scope("cross_entropy"):
         cross_entropy = tf.reduce_mean(tf.losses.sparse_softmax_cross_entropy(logits=logits, labels=labels))
@@ -42,28 +64,34 @@ def main():
         sess.run(tf.global_variables_initializer())
         train_writer = tf.summary.FileWriter(train_dir)
         test_writer = tf.summary.FileWriter(test_dir)
+
         train_writer.add_graph(sess.graph)
         summary = tf.summary.merge_all()
 
-        test_tensor, test_labels = mnist.test(batch_size=1000)
-        for epoch in range(n_epochs):
-            train_tensor, train_labels = mnist.train(batch_size=batch_size)
-            for step in range(n_steps_per_epoch):
-                absolute_step = step + epoch * n_steps_per_epoch
-                lr = min_learning_rate + (max_learning_rate - min_learning_rate) * math.exp(-absolute_step/learning_rate_decay)
+        test_tensor, test_labels = mnist.test(batch_size=args.test_batch)
+
+        print_header()
+        for epoch in range(args.epochs):
+            train_tensor, train_labels = mnist.train(batch_size=args.train_batch)
+
+            [train_loss, train_accuracy, train_summary] = sess.run([cross_entropy, accuracy, summary],
+                feed_dict={input_tensor: train_tensor, labels: train_labels})
+
+            [test_loss, test_accuracy, test_summary] = sess.run([cross_entropy, accuracy, summary],
+                feed_dict={input_tensor: test_tensor, labels: test_labels})
+
+            train_writer.add_summary(train_summary, epoch)
+            test_writer.add_summary(test_summary, epoch)
+            print_progress(epoch, train_loss, test_loss, train_accuracy, test_accuracy)
+
+            for step in range(args.steps):
+                lr = calculate_learning_rate(step + epoch * args.steps, args.lr_max, args.lr_min, args.lr_decay)
                 sess.run([train_step], feed_dict={input_tensor: train_tensor, labels: train_labels, learning_rate: lr})
-                if step is 0:
-                    [train_loss, train_accuracy, train_summary] = sess.run([cross_entropy, accuracy, summary],
-                        feed_dict={input_tensor: train_tensor, labels: train_labels})
 
-                    [test_loss, test_accuracy, test_summary] = sess.run([cross_entropy, accuracy, summary],
-                        feed_dict={input_tensor: test_tensor, labels: test_labels})
+            if epoch % args.checkpoint is 0:
+                saver.save(sess, os.path.join(checkpoint_dir, 'model_' + str(epoch) + '.ckpt'))
 
-                    train_writer.add_summary(train_summary, step + n_steps_per_epoch * epoch)
-                    test_writer.add_summary(test_summary, step + n_steps_per_epoch * epoch)
-
-                    print("epoch %d, train_loss %g, test_loss %g, train_accuracy %g, test_accuracy %g, learning_rate %g" % (epoch, train_loss, test_loss, train_accuracy, test_accuracy, lr))
-
+        saver.save(sess, os.path.join(checkpoint_dir, 'model_' + str(args.epochs) + '.ckpt'))
 
 if __name__ == '__main__':
     main()

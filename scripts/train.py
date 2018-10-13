@@ -1,6 +1,5 @@
 import tensorflow as tf
 from tensorflow.python.tools.freeze_graph import freeze_graph
-from tensorflow.python.tools.optimize_for_inference_lib import optimize_for_inference
 from core import simple_mnist_cnn
 from core import MNISTBatch
 import math
@@ -104,12 +103,6 @@ def main():
 
         freeze_graph(os.path.join(freeze_dir, 'model.pb'), '', True, os.path.join(ckpt_dir, ckpt_file),
             'output/softmax', 'save/restore_all', 'save/Const:0', os.path.join(freeze_dir, 'frozenmodel.pb'), True, '')
-
-        optimized_graph = optimize_for_inference(sess.graph.as_graph_def(), ['input_tensor'], ['output/softmax'],
-            tf.float32.as_datatype_enum)
-
-        handle = tf.gfile.FastGFile(os.path.join(freeze_dir, 'optimized.pb'), 'w')
-        handle.write(optimized_graph.SerializeToString())
 
 if __name__ == '__main__':
     main()

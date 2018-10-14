@@ -36,7 +36,7 @@ Activate the environment:
 ```bash
 conda activate pytf_36
 ```
-Depending on if you installed GPU requirements, install Tensorflow, tfserve and Pillow:
+Depending on if you installed GPU requirements, install `Tensorflow`, `tfserve` and `Pillow`:
 ```bash
 pip install -r requirements_cpu.txt
 ```
@@ -61,7 +61,7 @@ Simply run:
 ```bash
 python scripts/inference_cmd.py
 ```
-to try out the command line tool.
+to try out the command line tool. See the argument parser for supplying different images to command line tool.
 
 ## Inference Server
 First, start the server by running:

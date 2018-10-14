@@ -18,7 +18,7 @@ The frozen model, which is the result of training, is defined under `moder/froze
 * [Tensorflow](https://www.tensorflow.org/install/)
 * [tfserve](https://github.com/iitzco/tfserve)
 * [Pillow](https://pillow.readthedocs.io/en/5.3.x/)
-* Anaconda (optional)
+* [Anaconda](https://www.anaconda.com/download/#linux) (optional)
 
 ## GPU Installation (optional)
 If you would like to perform training/inference on the GPU, you will need to install Nvidia drivers for your graphics card. You can download the most recent drivers [here](https://www.nvidia.com/download/index.aspx).

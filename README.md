@@ -46,7 +46,7 @@ pip install -r requirements_gpu.txt
 ```
 
 ## Training
-Before starting to train, add the `core` folder to your `PYTHONPATH`. This can be done by sourcing `env.sh` from location on your harddrive.
+Before starting to train, add the `core` folder to your `PYTHONPATH`. This can be done by sourcing `env.sh` from any location on your harddrive.
 ```bash
 source env.sh
 ```

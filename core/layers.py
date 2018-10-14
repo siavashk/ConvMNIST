@@ -1,6 +1,5 @@
 import tensorflow as tf
 
-
 def conv_layer(input, size_in, size_out, name="conv"):
     with tf.name_scope(name):
         w = tf.Variable(tf.contrib.layers.xavier_initializer()([3, 3, size_in, size_out]), name="W")

@@ -27,7 +27,7 @@ You will also need to install CUDA. Tensorflow 1.11 requires at least CUDA 9.0, 
 
 Finally, you will also need to download CUDNN. Follow the instructions [here](https://developer.nvidia.com/cudnn).
 
-## Anaconda Installation
+## Installation Using Anaconda
 Create an anaconda virtual environment such as:
 ```bash
 conda create -n pytf_36 python=3.6

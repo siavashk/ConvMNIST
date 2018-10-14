@@ -54,7 +54,7 @@ You can start training using default arguments simply by running:
 ```bash
 python scripts/train.py
 ```
-Look at `script/train.py` for adjusting command-line arguments that adjust training hyper parameters. On my GeForce GT 635, after 8 hours of training, I get about 97% and 96% accuracy on training and testing batches.
+Look at `script/train.py` for adjusting command-line arguments that adjust training hyper parameters. After training, I get about 97% and 96% accuracy on training and testing batches.
 
 ## Inference Command Line Tool
 Simply run:
